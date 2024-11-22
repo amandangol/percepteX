@@ -84,6 +84,13 @@ class HomeScreen extends StatelessWidget {
         'colors': [const Color(0xFFD35400), const Color(0xFFE67E22)],
         'feature': FeatureType.sceneDescription,
       },
+      {
+        'title': 'Object Search',
+        'icon': Icons.camera_alt,
+        'description': 'Search objects with Google',
+        'colors': [const Color(0xFF2980B), const Color(0xFF3498DB)],
+        'feature': FeatureType.objectSearch,
+      },
     ];
 
     return GridView.builder(

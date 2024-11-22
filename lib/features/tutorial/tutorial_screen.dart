@@ -94,7 +94,7 @@ class TutorialScreen extends StatelessWidget {
     return Column(
       children: [
         _TutorialItem(
-          icon: Icons.visibility,
+          icon: Icons.search_outlined,
           title: 'Object Detection',
           description:
               'Point your camera at any object to identify it in real-time',

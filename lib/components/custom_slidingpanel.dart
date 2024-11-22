@@ -13,10 +13,14 @@ class CustomSlidingPanel extends StatefulWidget {
   final DateTime? lastDetectionTime;
   final Function(String) onCopy;
   final Function(String) onShare;
-  final Function(String)? onTranslate;
+  final Function(String)? onSearchObject;
   final bool isVoicePlaying;
   final VoidCallback onPlayPauseVoice;
   final VoidCallback onStopVoice;
+  final List<String>? detectedObjects;
+  final List<Map<String, String>>? capturedObjects;
+  final String? capturedSceneDescription;
+
   const CustomSlidingPanel({
     Key? key,
     required this.panelController,
@@ -28,10 +32,13 @@ class CustomSlidingPanel extends StatefulWidget {
     this.lastDetectionTime,
     required this.onCopy,
     required this.onShare,
-    this.onTranslate,
+    this.onSearchObject,
     required this.isVoicePlaying,
     required this.onPlayPauseVoice,
     required this.onStopVoice,
+    this.detectedObjects,
+    this.capturedObjects,
+    this.capturedSceneDescription,
   }) : super(key: key);
 
   @override
@@ -41,6 +48,25 @@ class CustomSlidingPanel extends StatefulWidget {
 class _CustomSlidingPanelState extends State<CustomSlidingPanel> {
   final translator = GoogleTranslator();
   bool _isExpanded = false;
+  List<String> get effectiveDetectedObjects {
+    if (widget.feature == FeatureType.objectDetection) {
+      if (widget.capturedObjects != null &&
+          widget.capturedObjects!.isNotEmpty) {
+        return widget.capturedObjects!.map((obj) => obj['name'] ?? '').toList();
+      }
+      return widget.detectedObjects ?? [];
+    }
+    return [];
+  }
+
+  String get effectiveSceneDescription {
+    if (widget.feature == FeatureType.sceneDescription) {
+      return widget.capturedSceneDescription ??
+          widget.sceneDescriptionOutput ??
+          'No scene described';
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,69 +135,107 @@ class _CustomSlidingPanelState extends State<CustomSlidingPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: featureConfig.accentColor.withOpacity(0.1),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(featureConfig.icon,
-                        color: featureConfig.accentColor, size: 28),
-                    const SizedBox(width: 12),
-                    Text(
-                      featureConfig.title,
-                      style: TextStyle(
-                        color: featureConfig.accentColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                if (_isExpanded)
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () => widget.panelController.close(),
-                  ),
-              ],
-            ),
-          ),
-          if (widget.lastDetectionTime != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Last updated: ${_formatDateTime(widget.lastDetectionTime!)}',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
+          _buildHeader(featureConfig),
+          if (widget.lastDetectionTime != null) _buildLastUpdateTime(),
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(
-                  featureConfig.displayText,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 18,
-                    height: 1.6,
-                  ),
-                ),
+                child: _buildContent(featureConfig),
               ),
             ),
           ),
           _buildActionButtons(featureConfig),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(FeatureConfig featureConfig) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: featureConfig.accentColor.withOpacity(0.1),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(featureConfig.icon,
+                  color: featureConfig.accentColor, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                featureConfig.title,
+                style: TextStyle(
+                  color: featureConfig.accentColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          if (_isExpanded)
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.grey),
+              onPressed: () => widget.panelController.close(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLastUpdateTime() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'Last updated: ${_formatDateTime(widget.lastDetectionTime!)}',
+        style: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 14,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(FeatureConfig featureConfig) {
+    if (widget.feature == FeatureType.objectDetection) {
+      final objects = effectiveDetectedObjects;
+      if (objects.isEmpty) {
+        return const Text(
+          'No objects detected',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            height: 1.6,
+          ),
+        );
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: objects.map((object) {
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              title: Text(object),
+              trailing: IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () => widget.onSearchObject?.call(object),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+    return Text(
+      featureConfig.displayText,
+      style: const TextStyle(
+        color: Colors.black87,
+        fontSize: 18,
+        height: 1.6,
       ),
     );
   }
@@ -247,6 +311,15 @@ class _CustomSlidingPanelState extends State<CustomSlidingPanel> {
 
   FeatureConfig _getFeatureConfig() {
     switch (widget.feature) {
+      case FeatureType.objectDetection:
+        final objects = effectiveDetectedObjects;
+        return FeatureConfig(
+          title: 'Detected Objects',
+          icon: Icons.visibility,
+          accentColor: Colors.blue,
+          displayText:
+              objects.isEmpty ? 'No objects detected' : objects.join(', '),
+        );
       case FeatureType.textRecognition:
         return FeatureConfig(
           title: 'Recognized Text',
@@ -259,7 +332,7 @@ class _CustomSlidingPanelState extends State<CustomSlidingPanel> {
           title: 'Scene Description',
           icon: Icons.image,
           accentColor: Colors.orange,
-          displayText: widget.sceneDescriptionOutput ?? 'No scene described',
+          displayText: effectiveSceneDescription,
         );
       default:
         return const FeatureConfig(

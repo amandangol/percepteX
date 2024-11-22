@@ -79,6 +79,15 @@ class CustomControlButton extends StatelessWidget {
               : (showTextOutput ? 'New Description' : 'Describe Scene'),
           color: isProcessing ? Colors.red : Colors.orange,
         );
+      case FeatureType.objectSearch:
+        final isProcessing = isImageDescriptionRunning;
+        return _ButtonProperties(
+          icon: isProcessing ? Icons.stop : Icons.camera_alt,
+          label: isProcessing
+              ? 'Stop'
+              : (showTextOutput ? 'New Search' : 'Search Objects'),
+          color: isProcessing ? Colors.yellow : Colors.orange,
+        );
     }
   }
 }

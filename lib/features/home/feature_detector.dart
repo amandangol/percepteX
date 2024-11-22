@@ -12,6 +12,7 @@ import 'package:perceptexx/models/recognition_model.dart';
 import 'package:perceptexx/models/screen_params_model.dart';
 import 'package:perceptexx/services/api_service.dart';
 import 'package:perceptexx/services/object_detector_service.dart';
+import 'package:perceptexx/services/object_search_service.dart';
 import 'package:perceptexx/services/text_recognition_service.dart';
 import 'package:perceptexx/shared/control_button_widget.dart';
 import 'package:perceptexx/shared/custom_app_bar.dart';
@@ -49,6 +50,9 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   final TextRecognitionTTS textRecognitionTTS = TextRecognitionTTS();
   final ApiService apiService = ApiService();
   final PanelController _panelController = PanelController();
+  late ObjectSearchService _objectSearchService;
+  ObjectSearchResult? _searchResult;
+  bool _isObjectSearchRunning = false;
   double _minHeight = 0.0;
   double _maxHeight = 0.0;
   final bool _isPanelOpen = false;
@@ -78,6 +82,8 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         return 'Text Recognition';
       case FeatureType.sceneDescription:
         return 'Scene Description';
+      case FeatureType.objectSearch:
+        return 'Search Objects';
     }
   }
 
@@ -98,6 +104,13 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
             '• Works best with printed text\n'
             '• Wait for the voice to finish reading';
       case FeatureType.sceneDescription:
+        return 'This feature describes the overall scene.\n\n'
+            '• Point camera at the scene you want described\n'
+            '• Press start to capture and analyze\n'
+            '• Hold steady while processing\n'
+            '• Best for complex scenes or environments\n'
+            '• Wait for the complete description';
+      case FeatureType.objectSearch:
         return 'This feature describes the overall scene.\n\n'
             '• Point camera at the scene you want described\n'
             '• Press start to capture and analyze\n'
@@ -340,6 +353,8 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         return 'Text Recognition';
       case FeatureType.sceneDescription:
         return 'Scene Description';
+      case FeatureType.objectSearch:
+        return 'Search objects';
     }
   }
 
@@ -366,6 +381,13 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
             '• Hold steady while processing\n'
             '• Best for complex scenes or environments\n'
             '• Wait for the complete description';
+      case FeatureType.objectSearch:
+        return 'This feature describes the overall scene.\n\n'
+            '• Point camera at the scene you want described\n'
+            '• Press start to capture and analyze\n'
+            '• Hold steady while processing\n'
+            '• Best for complex scenes or environments\n'
+            '• Wait for the complete description';
     }
   }
 
@@ -379,8 +401,58 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         break;
       case FeatureType.sceneDescription:
         _toggleImageDescription();
+      case FeatureType.objectSearch:
+        _toggleObjectSearch();
         break;
     }
+  }
+
+  void _toggleObjectSearch() async {
+    if (_isObjectSearchRunning) {
+      await _pauseObjectSearch();
+      return;
+    }
+
+    setState(() {
+      _isObjectSearchRunning = true;
+      isDetecting = false;
+      showTextOutput = true;
+      lastDetectionTime = DateTime.now();
+    });
+
+    await _objectSearchService.speakDescription('Capturing image for analysis');
+
+    try {
+      final imageFile = await _cameraController!.takePicture();
+      final result =
+          await _objectSearchService.analyzeImage(File(imageFile.path));
+
+      setState(() {
+        _searchResult = result;
+        lastDetectionTime = DateTime.now();
+      });
+
+      await _objectSearchService.speakDescription(result.voiceDescription);
+      setState(() {
+        isVoicePlaying = true;
+      });
+
+      _panelController.open();
+    } catch (e) {
+      print('Error in object search: $e');
+      await _objectSearchService.speakDescription('Error analyzing the image');
+    }
+
+    setState(() {
+      _isObjectSearchRunning = false;
+    });
+  }
+
+  Future<void> _pauseObjectSearch() async {
+    await _objectSearchService.stopSpeaking();
+    setState(() {
+      _isObjectSearchRunning = false;
+    });
   }
 
   void _shareText(String text) {
@@ -463,6 +535,12 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
           if (mounted) {
             setState(() {
               isImageDescriptionRunning = false;
+            });
+          }
+        case FeatureType.objectSearch:
+          if (mounted) {
+            setState(() {
+              _isObjectSearchRunning = false;
             });
           }
           break;
@@ -700,6 +778,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     _detector?.stop();
     _subscription?.cancel();
     textRecognitionTTS.dispose();
+    _objectSearchService.dispose();
 
     // Safely close panel
     _panelController.close();

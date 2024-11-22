@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 import 'package:perceptexx/models/recognition_model.dart';
 import 'package:perceptexx/services/image_processing_service.dart';
-
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 enum _Codes {

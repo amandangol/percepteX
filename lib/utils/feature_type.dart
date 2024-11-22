@@ -1,1 +1,6 @@
-enum FeatureType { objectDetection, textRecognition, sceneDescription }
+enum FeatureType {
+  objectDetection,
+  textRecognition,
+  sceneDescription,
+  objectSearch
+}

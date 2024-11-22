@@ -49,7 +49,7 @@ class TutorialScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const Text(
-          'How to Use PerceptEx',
+          'How to Use PercepteX',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,

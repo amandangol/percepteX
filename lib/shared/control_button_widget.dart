@@ -86,7 +86,7 @@ class CustomControlButton extends StatelessWidget {
           label: isProcessing
               ? 'Stop'
               : (showTextOutput ? 'New Search' : 'Search Objects'),
-          color: isProcessing ? Colors.yellow : Colors.orange,
+          color: isProcessing ? Colors.red : Colors.yellow.withOpacity(0.5),
         );
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Add flutter_tts package to pubspec.yaml
 import 'package:perceptexx/features/home/feature_detector.dart';
 import 'package:perceptexx/features/home/widgets/feature_card.dart';
 import 'package:perceptexx/features/home/widgets/greeting_section.dart';
@@ -9,8 +10,51 @@ import 'package:perceptexx/features/tutorial/tutorial_screen.dart';
 
 import '../../utils/feature_type.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late FlutterTts flutterTts;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeTts();
+  }
+
+  void initializeTts() async {
+    flutterTts = FlutterTts();
+    await flutterTts.setLanguage('en-US');
+    await flutterTts.setPitch(1.0);
+    await flutterTts.setSpeechRate(0.5);
+
+    // Generate personalized greeting based on time of day
+    final hour = DateTime.now().hour;
+    String timeOfDayGreeting = hour < 12
+        ? 'Good Morning'
+        : hour < 18
+            ? 'Good Afternoon'
+            : 'Good Evening';
+
+    // Voice greeting
+    String greeting =
+        '$timeOfDayGreeting! I am PercepteX, your AI vision companion. '
+        'I can help you detect objects, recognize text, describe scenes, and search for items. '
+        'Let\'s explore what you can do today!';
+
+    // Speak the greeting
+    await flutterTts.speak(greeting);
+  }
+
+  @override
+  void dispose() {
+    flutterTts.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +105,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // Existing methods remain the same as in the previous implementation
   Widget _buildFeatureGrid(BuildContext context) {
     final features = [
       {
@@ -88,7 +133,7 @@ class HomeScreen extends StatelessWidget {
         'title': 'Object Search',
         'icon': Icons.camera_alt,
         'description': 'Search objects with Google',
-        'colors': [const Color(0xFF2980B), const Color(0xFF3498DB)],
+        'colors': [const Color(0xFF2980B), Color.fromARGB(255, 188, 219, 52)],
         'feature': FeatureType.objectSearch,
       },
     ];

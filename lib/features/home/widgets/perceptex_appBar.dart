@@ -56,7 +56,7 @@ class PerceptexAppBar extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const Text(
-                'PerceptEX',
+                'PercepteX',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w500,

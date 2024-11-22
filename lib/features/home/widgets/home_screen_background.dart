@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Extracted Background Decoration Widget
 class HomeScreenBackground extends StatelessWidget {
   final Widget child;
 
@@ -9,41 +8,25 @@ class HomeScreenBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF2C3E50),
-            Color(0xFF3498DB),
-            Color(0xFF2980B9),
+            Color(0xFF1A1A2E),
+            Color(0xFF16213E),
+            Color(0xFF0F3460),
           ],
         ),
       ),
       child: Stack(
         children: [
-          // Decorative Circles
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+          // Subtle Geometric Overlays
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.1,
+              child: CustomPaint(
+                painter: BackgroundPainter(),
               ),
             ),
           ),
@@ -52,4 +35,30 @@ class HomeScreenBackground extends StatelessWidget {
       ),
     );
   }
+}
+
+class BackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // Draw abstract geometric shapes
+    final path1 = Path()
+      ..moveTo(size.width * 0.2, 0)
+      ..lineTo(0, size.height * 0.4)
+      ..lineTo(size.width * 0.4, size.height);
+    canvas.drawPath(path1, paint);
+
+    final path2 = Path()
+      ..moveTo(size.width, size.height * 0.2)
+      ..lineTo(size.width * 0.6, size.height)
+      ..lineTo(size.width, size.height * 0.8);
+    canvas.drawPath(path2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

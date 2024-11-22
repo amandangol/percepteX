@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:perceptexx/components/bounding_boxes.dart';
-import 'package:perceptexx/components/custom_slidingpanel.dart';
 import 'package:perceptexx/components/guide_overlay.dart';
+import 'package:perceptexx/features/slidingpanel/custom_slidingpanel.dart';
 import 'package:perceptexx/models/recognition_model.dart';
 import 'package:perceptexx/models/screen_params_model.dart';
 import 'package:perceptexx/services/api_service.dart';
@@ -49,13 +49,11 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   final FlutterTts flutterTts = FlutterTts();
   final TextRecognitionTTS textRecognitionTTS = TextRecognitionTTS();
   final ApiService apiService = ApiService();
+  final ObjectSearchService objectSearchService = ObjectSearchService();
+
   final PanelController _panelController = PanelController();
-  late ObjectSearchService _objectSearchService;
-  ObjectSearchResult? _searchResult;
-  bool _isObjectSearchRunning = false;
   double _minHeight = 0.0;
   double _maxHeight = 0.0;
-  final bool _isPanelOpen = false;
   bool _isInitialized = false;
 
   bool isDetecting = false;
@@ -69,56 +67,12 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   bool showTextOutput = false;
   bool isTextPanelExpanded = false;
   bool isVoicePlaying = false;
+  bool isImageSearchRunning = false;
+  Map<String, dynamic>? objectSearchResult;
 
   DateTime? lastDetectionTime;
   final double _fixedExposureOffset = 1.0;
   double panelHeightPercentage = 0.4;
-
-  String get featureTitle {
-    switch (widget.feature) {
-      case FeatureType.objectDetection:
-        return 'Object Detection';
-      case FeatureType.textRecognition:
-        return 'Text Recognition';
-      case FeatureType.sceneDescription:
-        return 'Scene Description';
-      case FeatureType.objectSearch:
-        return 'Search Objects';
-    }
-  }
-
-  String get featureGuide {
-    switch (widget.feature) {
-      case FeatureType.objectDetection:
-        return 'This feature detects and identifies objects in real-time.\n\n'
-            '• Point your camera at objects around you\n'
-            '• The app will identify objects and their locations\n'
-            '• Voice feedback will describe what is detected\n'
-            '• Use the pause button to freeze detection\n'
-            '• Best used in well-lit environments';
-      case FeatureType.textRecognition:
-        return 'This feature reads text from images.\n\n'
-            '• Hold the camera steady pointing at text\n'
-            '• Press start to capture and read text\n'
-            '• Keep text well-lit and clearly visible\n'
-            '• Works best with printed text\n'
-            '• Wait for the voice to finish reading';
-      case FeatureType.sceneDescription:
-        return 'This feature describes the overall scene.\n\n'
-            '• Point camera at the scene you want described\n'
-            '• Press start to capture and analyze\n'
-            '• Hold steady while processing\n'
-            '• Best for complex scenes or environments\n'
-            '• Wait for the complete description';
-      case FeatureType.objectSearch:
-        return 'This feature describes the overall scene.\n\n'
-            '• Point camera at the scene you want described\n'
-            '• Press start to capture and analyze\n'
-            '• Hold steady while processing\n'
-            '• Best for complex scenes or environments\n'
-            '• Wait for the complete description';
-    }
-  }
 
   @override
   void initState() {
@@ -230,6 +184,10 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     }
 
     CustomSlidingPanel buildSlidingPanel() {
+      bool isAnalyzing = isTextRecognitionRunning ||
+          isImageDescriptionRunning ||
+          isImageSearchRunning;
+
       return CustomSlidingPanel(
         panelController: _panelController,
         minHeight: _minHeight,
@@ -237,12 +195,10 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         feature: widget.feature,
         recognizedTextOutput: recognizedTextOutput,
         sceneDescriptionOutput: sceneDescriptionOutput,
-        lastDetectionTime: lastDetectionTime,
+        objectSearchResult: objectSearchResult,
         onCopy: (text) => _copyToClipboard(text),
         onShare: (text) => _shareText(text),
-        isVoicePlaying: isVoicePlaying,
-        onPlayPauseVoice: _toggleVoicePlayback,
-        onStopVoice: _stopVoicePlayback,
+        isAnalyzing: isAnalyzing,
       );
     }
 
@@ -354,7 +310,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       case FeatureType.sceneDescription:
         return 'Scene Description';
       case FeatureType.objectSearch:
-        return 'Search objects';
+        return 'Search Object';
     }
   }
 
@@ -382,12 +338,12 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
             '• Best for complex scenes or environments\n'
             '• Wait for the complete description';
       case FeatureType.objectSearch:
-        return 'This feature describes the overall scene.\n\n'
-            '• Point camera at the scene you want described\n'
-            '• Press start to capture and analyze\n'
-            '• Hold steady while processing\n'
-            '• Best for complex scenes or environments\n'
-            '• Wait for the complete description';
+        return 'This feature identifies objects and finds related information.\n\n'
+            '• Point camera at an object you want to learn about\n'
+            '• Press start to capture and analyze the object\n'
+            '• View object details and suggested searches\n'
+            '• Tap search buttons to find more information\n'
+            '• Best used with clear, well-lit objects';
     }
   }
 
@@ -401,58 +357,11 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         break;
       case FeatureType.sceneDescription:
         _toggleImageDescription();
+        break;
       case FeatureType.objectSearch:
         _toggleObjectSearch();
         break;
     }
-  }
-
-  void _toggleObjectSearch() async {
-    if (_isObjectSearchRunning) {
-      await _pauseObjectSearch();
-      return;
-    }
-
-    setState(() {
-      _isObjectSearchRunning = true;
-      isDetecting = false;
-      showTextOutput = true;
-      lastDetectionTime = DateTime.now();
-    });
-
-    await _objectSearchService.speakDescription('Capturing image for analysis');
-
-    try {
-      final imageFile = await _cameraController!.takePicture();
-      final result =
-          await _objectSearchService.analyzeImage(File(imageFile.path));
-
-      setState(() {
-        _searchResult = result;
-        lastDetectionTime = DateTime.now();
-      });
-
-      await _objectSearchService.speakDescription(result.voiceDescription);
-      setState(() {
-        isVoicePlaying = true;
-      });
-
-      _panelController.open();
-    } catch (e) {
-      print('Error in object search: $e');
-      await _objectSearchService.speakDescription('Error analyzing the image');
-    }
-
-    setState(() {
-      _isObjectSearchRunning = false;
-    });
-  }
-
-  Future<void> _pauseObjectSearch() async {
-    await _objectSearchService.stopSpeaking();
-    setState(() {
-      _isObjectSearchRunning = false;
-    });
   }
 
   void _shareText(String text) {
@@ -537,10 +446,12 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
               isImageDescriptionRunning = false;
             });
           }
+          break;
         case FeatureType.objectSearch:
           if (mounted) {
             setState(() {
-              _isObjectSearchRunning = false;
+              isImageSearchRunning = false;
+              objectSearchResult = null;
             });
           }
           break;
@@ -588,32 +499,80 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     }
   }
 
-  void _toggleObjectDetection() async {
+  void _toggleObjectSearch() async {
+    if (isImageSearchRunning) {
+      await _pauseImageSearch();
+      return;
+    }
+
     setState(() {
-      isPaused = !isPaused;
+      isImageSearchRunning = true;
+      isDetecting = false;
+      showTextOutput = true;
+      lastDetectionTime = DateTime.now();
     });
 
-    if (isPaused) {
-      await _pauseDetection();
-      await flutterTts.speak("Object detection paused");
-    } else {
-      await flutterTts.speak("Object detection starting");
-      await Future.delayed(const Duration(seconds: 1));
+    await flutterTts.speak('Analyzing object');
+    _subscription?.pause();
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final imagePath = '${directory.path}/temp_image.jpg';
+      final XFile imageFile = await _cameraController!.takePicture();
+      await File(imageFile.path).copy(imagePath);
+
+      final analysisResult =
+          await objectSearchService.detectAndAnalyzeObject(File(imagePath));
+
+      if (!mounted) return;
+
       setState(() {
-        isDetecting = true;
+        objectSearchResult = analysisResult;
+        lastDetectionTime = DateTime.now();
+        isImageSearchRunning = false;
       });
+
+      final speechText =
+          'I found ${analysisResult['main_object']}. ${analysisResult['description']}';
+      await flutterTts.speak(speechText);
+
+      setState(() {
+        isVoicePlaying = true;
+      });
+
+      flutterTts.setCompletionHandler(() {
+        if (mounted) {
+          setState(() {
+            isVoicePlaying = false;
+          });
+        }
+      });
+
+      _panelController.open();
+    } catch (e) {
+      print('Error analyzing object: $e');
+      if (mounted) {
+        setState(() {
+          objectSearchResult = {
+            'main_object': 'Error',
+            'description': 'Could not analyze the object',
+            'search_keywords': [],
+            'suggested_queries': []
+          };
+          lastDetectionTime = DateTime.now();
+          isImageSearchRunning = false;
+        });
+        await flutterTts.speak('Error analyzing the object');
+      }
     }
+
+    _subscription?.resume();
   }
 
   void _toggleTextRecognition() async {
     if (isTextRecognitionRunning) {
       await _pauseTextRecognition();
       return;
-    }
-
-    if (showTextOutput && _isPanelOpen) {
-      _panelController.close();
-      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     setState(() {
@@ -628,34 +587,36 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
 
     String? recognizedText =
         await textRecognitionTTS.recognizeText(_cameraController!);
-    if (recognizedText!.isNotEmpty) {
-      setState(() {
-        recognizedTextOutput = recognizedText;
-        lastDetectionTime = DateTime.now();
-      });
 
-      // Only speak if text is not empty and not already spoken during recognition
-      await flutterTts.speak(recognizedText);
+    if (!mounted) return;
+
+    setState(() {
+      recognizedTextOutput = recognizedText?.isNotEmpty == true
+          ? recognizedText
+          : 'No text recognized';
+      lastDetectionTime = DateTime.now();
+      isTextRecognitionRunning = false; // Clear loading state
+    });
+
+    if (recognizedText?.isNotEmpty == true) {
+      await flutterTts.speak(recognizedText!);
       setState(() {
         isVoicePlaying = true;
       });
+
       flutterTts.setCompletionHandler(() {
-        setState(() {
-          isVoicePlaying = false;
-        });
+        if (mounted) {
+          setState(() {
+            isVoicePlaying = false;
+          });
+        }
       });
+
       _panelController.open();
     } else {
-      setState(() {
-        recognizedTextOutput = 'No text recognized';
-        lastDetectionTime = DateTime.now();
-      });
       await flutterTts.speak("No text recognized");
     }
 
-    setState(() {
-      isTextRecognitionRunning = false;
-    });
     _subscription?.resume();
   }
 
@@ -663,11 +624,6 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     if (isImageDescriptionRunning) {
       await _pauseImageDescription();
       return;
-    }
-
-    if (showTextOutput && _isPanelOpen) {
-      _panelController.close();
-      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     setState(() {
@@ -684,46 +640,70 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       final directory = await getApplicationDocumentsDirectory();
       final imagePath = '${directory.path}/temp_image.jpg';
       final XFile imageFile = await _cameraController!.takePicture();
-
       await File(imageFile.path).copy(imagePath);
 
       final description = await apiService.describeImage(File(imagePath));
+
+      if (!mounted) return;
+
       setState(() {
         sceneDescriptionOutput = description;
         lastDetectionTime = DateTime.now();
+        isImageDescriptionRunning = false; // Clear loading state
       });
+
       await flutterTts.speak(description);
       setState(() {
         isVoicePlaying = true;
       });
+
       flutterTts.setCompletionHandler(() {
-        setState(() {
-          isVoicePlaying = false;
-        });
+        if (mounted) {
+          setState(() {
+            isVoicePlaying = false;
+          });
+        }
       });
+
       _panelController.open();
     } catch (e) {
       print('Error describing the image: $e');
-      setState(() {
-        sceneDescriptionOutput = 'Error describing the image';
-        lastDetectionTime = DateTime.now();
-      });
-      await flutterTts.speak('Error describing the image');
+      if (mounted) {
+        setState(() {
+          sceneDescriptionOutput = 'Error describing the image';
+          lastDetectionTime = DateTime.now();
+          isImageDescriptionRunning = false; // Clear loading state
+        });
+        await flutterTts.speak('Error describing the image');
+      }
     }
 
-    setState(() {
-      isImageDescriptionRunning = false;
-    });
     _subscription?.resume();
   }
 
-  Future<void> _speakTextInLanguage(String text, String languageCode) async {
-    // Configure TTS for specific language
-    await flutterTts.setLanguage(languageCode);
-    await flutterTts.speak(text);
+  Future<void> _pauseImageSearch() async {
+    print('Pausing object search');
+    await flutterTts.stop();
+    setState(() {
+      isImageSearchRunning = false;
+    });
+  }
 
-    // Reset to default language after speaking
-    await flutterTts.setLanguage('en-US');
+  void _toggleObjectDetection() async {
+    setState(() {
+      isPaused = !isPaused;
+    });
+
+    if (isPaused) {
+      await _pauseDetection();
+      await flutterTts.speak("Object detection paused");
+    } else {
+      await flutterTts.speak("Object detection starting");
+      await Future.delayed(const Duration(seconds: 1));
+      setState(() {
+        isDetecting = true;
+      });
+    }
   }
 
   Future<void> _pauseDetection() async {
@@ -778,7 +758,6 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     _detector?.stop();
     _subscription?.cancel();
     textRecognitionTTS.dispose();
-    _objectSearchService.dispose();
 
     // Safely close panel
     _panelController.close();

@@ -1,69 +1,39 @@
-// lib/services/object_search_service.dart
-
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image/image.dart' as img;
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:perceptexx/config/app_config.dart';
 
-class ObjectSearchResult {
-  final String mainObject;
-  final String description;
-  final List<String> searchKeywords;
-  final List<String> suggestedQueries;
-  final String voiceDescription;
+class ObjectSearchService {
+  late final GenerativeModel _model;
+  static final ObjectSearchService _instance = ObjectSearchService._internal();
 
-  ObjectSearchResult({
-    required this.mainObject,
-    required this.description,
-    required this.searchKeywords,
-    required this.suggestedQueries,
-    required this.voiceDescription,
-  });
+  factory ObjectSearchService() {
+    return _instance;
+  }
 
-  factory ObjectSearchResult.fromJson(Map<String, dynamic> json) {
-    return ObjectSearchResult(
-      mainObject: json['main_object'] ?? 'Unknown object',
-      description: json['description'] ?? 'No description available',
-      searchKeywords: List<String>.from(json['search_keywords'] ?? []),
-      suggestedQueries: List<String>.from(json['suggested_queries'] ?? []),
-      voiceDescription: json['voice_description'] ?? 'No description available',
+  ObjectSearchService._internal() {
+    _initializeModel();
+  }
+
+  void _initializeModel() {
+    _model = GenerativeModel(
+      model: 'gemini-1.5-flash',
+      apiKey: AppConfig.apiKey,
     );
   }
-}
 
-class ObjectSearchService {
-  final GenerativeModel _model;
-  final FlutterTts _flutterTts;
-  bool _isSpeaking = false;
-
-  ObjectSearchService()
-      : _model = GenerativeModel(
-          model: 'gemini-1.5-flash',
-          apiKey: AppConfig.apiKey,
-        ),
-        _flutterTts = FlutterTts() {
-    _initializeTts();
-  }
-
-  Future<void> _initializeTts() async {
-    await _flutterTts.setLanguage('en-US');
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
-  }
-
-  Future<File> _resizeImage(File file) async {
+  Future<File> resizeImage(File file, int maxWidth, int maxHeight) async {
     try {
       final originalImage = img.decodeImage(await file.readAsBytes());
-      if (originalImage == null) throw Exception('Failed to decode image');
+      if (originalImage == null) {
+        throw Exception('Failed to decode image');
+      }
 
       final resizedImage = img.copyResize(
         originalImage,
-        width: 800,
-        height: 800,
+        width: maxWidth,
+        height: maxHeight,
         interpolation: img.Interpolation.linear,
       );
 
@@ -79,45 +49,45 @@ class ObjectSearchService {
     }
   }
 
-  Future<ObjectSearchResult> analyzeImage(File imageFile) async {
+  Future<Map<String, dynamic>> detectAndAnalyzeObject(File imageFile) async {
     try {
       if (!await imageFile.exists()) {
         throw Exception('Image file does not exist');
       }
 
-      final resizedImage = await _resizeImage(imageFile);
-      final imageBytes = await resizedImage.readAsBytes();
-      final mimeType = 'image/jpeg';
+      final String mimeType = _getMimeType(imageFile.path);
+      if (!_isValidImageType(mimeType)) {
+        throw Exception('Invalid image type: $mimeType');
+      }
 
-      final prompt = '''
-        Analyze this image and provide the following information in JSON format:
-        {
-          "main_object": "Primary object or subject in the image",
-          "description": "Detailed description of what you see",
-          "search_keywords": ["relevant", "search", "keywords"],
-          "suggested_queries": ["3-4 specific", "search queries", "for more info"],
-          "voice_description": "A natural, conversational description for voice output"
-        }
-      ''';
+      final resizedImage = await resizeImage(imageFile, 800, 800);
+      final imageBytes = await resizedImage.readAsBytes();
 
       final content = [
         Content.multi([
-          TextPart(prompt),
+          TextPart(
+              "Analyze this image and provide the following in JSON format: "
+              "1. main_object: The primary object or subject in the image "
+              "2. description: A brief description of the object "
+              "3. search_keywords: Relevant keywords for searching about this object "
+              "4. suggested_queries: 3-4 specific search queries that would be helpful to learn more about this object"),
           DataPart(mimeType, imageBytes),
         ])
       ];
 
       final response = await _model.generateContent(content);
-      await resizedImage.delete();
+      await resizedImage
+          .delete()
+          // ignore: invalid_return_type_for_catch_error
+          .catchError((e) => print('Error deleting temp file: $e'));
 
-      if (response.text == null) {
+      if (response.text != null) {
+        return _parseJsonResponse(response.text!);
+      } else {
         throw Exception('No response received from API');
       }
-
-      final jsonResponse = _parseJsonResponse(response.text!);
-      return ObjectSearchResult.fromJson(jsonResponse);
     } catch (e) {
-      throw Exception('Failed to analyze image: $e');
+      throw Exception('Failed to analyze object: $e');
     }
   }
 
@@ -131,41 +101,34 @@ class ObjectSearchService {
         'main_object': 'Unknown object',
         'description': 'Could not analyze the image',
         'search_keywords': ['object', 'item'],
-        'suggested_queries': ['What is this object?'],
-        'voice_description': 'I could not properly analyze this image.',
+        'suggested_queries': ['What is this object?']
       };
     }
   }
 
-  Future<void> speakDescription(String text) async {
-    if (_isSpeaking) {
-      await stopSpeaking();
-    }
-    _isSpeaking = true;
-    await _flutterTts.speak(text);
-  }
-
-  Future<void> stopSpeaking() async {
-    _isSpeaking = false;
-    await _flutterTts.stop();
-  }
-
-  Future<void> pauseSpeaking() async {
-    _isSpeaking = false;
-    await _flutterTts.pause();
-  }
-
-  Future<void> searchGoogle(String query) async {
-    final Uri url =
-        Uri.parse('https://www.google.com/search?q=${Uri.encodeFull(query)}');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      throw Exception('Could not launch search');
+  String _getMimeType(String filepath) {
+    final extension = filepath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'application/octet-stream';
     }
   }
 
-  void dispose() {
-    _flutterTts.stop();
+  bool _isValidImageType(String mimeType) {
+    return [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ].contains(mimeType);
   }
 }

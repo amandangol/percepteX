@@ -477,20 +477,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF2C3E50), // Deep blue-gray
-              Color(0xFF3498DB), // Bright blue
-              Color(0xFF2980B9), // Medium blue
+              Color(0xFF1A1A2E),
+              Color(0xFF16213E),
+              Color(0xFF0F3460),
             ],
           ),
         ),
         child: Stack(
           children: [
-            // Decorative background circles similar to home view
             Positioned(
               top: -100,
               right: -100,

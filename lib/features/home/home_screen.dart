@@ -19,8 +19,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  late FlutterTts flutterTts;
+  FlutterTts? flutterTts;
   bool isFirstLaunch = false;
+  bool isTtsInitialized = false;
 
   @override
   void initState() {
@@ -29,22 +30,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     checkFirstLaunch();
   }
 
-  void checkFirstLaunch() async {
+  Future<void> _initialize() async {
+    await checkFirstLaunch();
+    await initializeTts();
+  }
+
+  Future<void> checkFirstLaunch() async {
     final prefs = await SharedPreferences.getInstance();
-    isFirstLaunch = !(prefs.getBool('has_launched') ?? false);
+    setState(() {
+      isFirstLaunch = !(prefs.getBool('has_launched') ?? false);
+    });
     if (isFirstLaunch) {
       await prefs.setBool('has_launched', true);
-      initializeTts();
     }
   }
 
-  void initializeTts() async {
-    flutterTts = FlutterTts();
-    await flutterTts.setLanguage('en-US');
-    await flutterTts.setPitch(1.0);
-    await flutterTts.setSpeechRate(0.5);
+  Future<void> initializeTts() async {
+    final tts = FlutterTts();
+    await tts.setLanguage('en-US');
+    await tts.setPitch(1.0);
+    await tts.setSpeechRate(0.5);
 
-    if (isFirstLaunch) {
+    setState(() {
+      flutterTts = tts;
+      isTtsInitialized = true;
+    });
+
+    if (isFirstLaunch && mounted) {
       final hour = DateTime.now().hour;
       String timeOfDayGreeting = hour < 12
           ? 'Good Morning'
@@ -57,15 +69,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'I can help you detect objects, recognize text, describe scenes, and search for items. '
           'Let\'s explore what you can do today!';
 
-      await flutterTts.speak(greeting);
+      await flutterTts?.speak(greeting);
     }
   }
 
   @override
   void dispose() {
-    flutterTts.stop();
+    flutterTts?.stop();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<void> _navigateToFeature(
+      BuildContext context, FeatureType feature) async {
+    await flutterTts?.stop();
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FeatureDetector(
+            feature: feature,
+            onBack: () => Navigator.pop(context),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _navigateToTutorial(BuildContext context) async {
+    await flutterTts?.stop();
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TutorialScreen(
+            onClose: () => Navigator.pop(context),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _navigateToSettings(BuildContext context) async {
+    await flutterTts?.stop();
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+      );
+    }
   }
 
   @override
@@ -143,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       },
       {
         'title': 'Object Search',
-        'icon': Icons.camera_alt,
+        'icon': Icons.manage_search_outlined,
         'description': 'Search objects with Google',
         'colors': [const Color(0xFF2980B), Color.fromARGB(255, 188, 219, 52)],
         'feature': FeatureType.objectSearch,
@@ -171,39 +223,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         );
       },
-    );
-  }
-
-  void _navigateToFeature(BuildContext context, FeatureType feature) async {
-    await flutterTts.stop();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FeatureDetector(
-          feature: feature,
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToTutorial(BuildContext context) async {
-    await flutterTts.stop();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TutorialScreen(
-          onClose: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToSettings(BuildContext context) async {
-    await flutterTts.stop();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
   }
 }

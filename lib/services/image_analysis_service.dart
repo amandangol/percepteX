@@ -225,6 +225,7 @@ class ImageAnalysisService {
   Future<void> _cleanupTempFile(File file) async {
     await file
         .delete()
+        // ignore: invalid_return_type_for_catch_error
         .catchError((e) => print('Error deleting temp file: $e'));
   }
 

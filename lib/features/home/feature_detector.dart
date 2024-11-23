@@ -12,7 +12,6 @@ import 'package:perceptexx/models/recognition_model.dart';
 import 'package:perceptexx/models/screen_params_model.dart';
 import 'package:perceptexx/services/image_analysis_service.dart';
 import 'package:perceptexx/services/object_detector_service.dart';
-import 'package:perceptexx/services/object_search_service.dart';
 import 'package:perceptexx/services/text_recognition_service.dart';
 import 'package:perceptexx/shared/control_button_widget.dart';
 import 'package:perceptexx/shared/custom_app_bar.dart';
@@ -319,30 +318,30 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       case FeatureType.objectDetection:
         return 'This feature detects and identifies objects in real-time.\n\n'
             '• Point your camera at objects around you\n'
-            '• The app will identify objects and their locations\n'
+            '•Press start to identify objects and their locations\n'
             '• Voice feedback will describe what is detected\n'
             '• Use the pause button to freeze detection\n'
             '• Best used in well-lit environments';
       case FeatureType.textRecognition:
         return 'This feature reads text from images.\n\n'
             '• Hold the camera steady pointing at text\n'
-            '• Press start to capture and read text\n'
+            '• Press Read Text to capture and read text\n'
             '• Keep text well-lit and clearly visible\n'
             '• Works best with printed text\n'
             '• Wait for the voice to finish reading';
       case FeatureType.sceneDescription:
         return 'This feature describes the overall scene.\n\n'
             '• Point camera at the scene you want described\n'
-            '• Press start to capture and analyze\n'
+            '• Press Describe Scene to capture and analyze\n'
             '• Hold steady while processing\n'
             '• Best for complex scenes or environments\n'
             '• Wait for the complete description';
       case FeatureType.objectSearch:
         return 'This feature identifies objects and finds related information.\n\n'
             '• Point camera at an object you want to learn about\n'
-            '• Press start to capture and analyze the object\n'
+            '• Press Search Objects to capture and analyze the object\n'
             '• View object details and suggested searches\n'
-            '• Tap search buttons to find more information\n'
+            '• Tap search buttons or image search to find more information\n'
             '• Best used with clear, well-lit objects';
     }
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:perceptexx/features/home/home_screen.dart';
+import 'package:perceptexx/features/onboarding/onboarding_screen.dart';
 import 'package:perceptexx/features/splash/splash_screen.dart';
 
 void main() async {
@@ -29,7 +31,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         fontFamily: 'Roboto', // Optional: add a global font
       ),
-      home: const SplashScreen(), // Change initial route to SplashScreen
+      home: const OnboardingScreen(), // Change initial route to SplashScreen
     );
   }
 }

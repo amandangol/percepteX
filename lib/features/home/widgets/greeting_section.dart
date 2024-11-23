@@ -97,7 +97,7 @@ class _GreetingSectionState extends State<GreetingSection>
             : 'Good Evening';
 
     return '$timeOfDayGreeting! I am PercepteX, your AI vision companion. '
-        'I can help you detect objects, recognize text, describe scenes, and search for items. '
+        'I can help you detect objects, recognize text, analyze scenes, and search for objects. I also provide voice interactions for a better experience.'
         'Let\'s explore what you can do today!';
   }
 
@@ -241,7 +241,7 @@ class _GreetingSectionState extends State<GreetingSection>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Your AI Vision Companion',
+                        'Ready to assist with visual tasks with\nvoice interaction',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w300,

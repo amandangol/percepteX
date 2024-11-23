@@ -35,6 +35,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'Get comprehensive and detailed descriptions of entire scenes in a single glance.',
       'color': const Color(0xFFD35400),
     },
+    {
+      'icon': Icons.manage_search_outlined,
+      'title': 'Object Search',
+      'description':
+          'Identify objects and discover detailed information about them with intelligent search capabilities.',
+      'color': const Color(0xFF2980B9),
+    },
   ];
   // Method to mark onboarding as complete
   Future<void> _completeOnboarding() async {

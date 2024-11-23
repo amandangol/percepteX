@@ -10,7 +10,7 @@ import 'package:perceptexx/components/guide_overlay.dart';
 import 'package:perceptexx/features/slidingpanel/custom_slidingpanel.dart';
 import 'package:perceptexx/models/recognition_model.dart';
 import 'package:perceptexx/models/screen_params_model.dart';
-import 'package:perceptexx/services/api_service.dart';
+import 'package:perceptexx/services/image_analysis_service.dart';
 import 'package:perceptexx/services/object_detector_service.dart';
 import 'package:perceptexx/services/object_search_service.dart';
 import 'package:perceptexx/services/text_recognition_service.dart';
@@ -48,8 +48,8 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   Map<String, String>? stats;
   final FlutterTts flutterTts = FlutterTts();
   final TextRecognitionTTS textRecognitionTTS = TextRecognitionTTS();
-  final ApiService apiService = ApiService();
-  final ObjectSearchService objectSearchService = ObjectSearchService();
+  final ImageAnalysisService imageAnalysisService = ImageAnalysisService();
+  // final ObjectSearchService objectSearchService = ObjectSearchService();
 
   final PanelController _panelController = PanelController();
   double _minHeight = 0.0;
@@ -522,7 +522,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       await File(imageFile.path).copy(imagePath);
 
       final analysisResult =
-          await objectSearchService.detectAndAnalyzeObject(File(imagePath));
+          await imageAnalysisService.analyzeObject(File(imagePath));
 
       if (!mounted) return;
 
@@ -549,24 +549,49 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       });
 
       _panelController.open();
-    } catch (e) {
+    } on ImageAnalysisException catch (e) {
       print('Error analyzing object: $e');
       if (mounted) {
         setState(() {
           objectSearchResult = {
             'main_object': 'Error',
-            'description': 'Could not analyze the object',
+            'description': e.userFriendlyMessage,
             'search_keywords': [],
             'suggested_queries': []
           };
           lastDetectionTime = DateTime.now();
           isImageSearchRunning = false;
         });
-        await flutterTts.speak('Error analyzing the object');
-      }
-    }
+        await flutterTts.speak(e.userFriendlyMessage);
 
-    _subscription?.resume();
+        // If it's a server error, show a snackbar
+        if (e.isServerError) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.userFriendlyMessage),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ));
+        }
+      }
+    } catch (e) {
+      print('Unexpected error: $e');
+      if (mounted) {
+        setState(() {
+          objectSearchResult = {
+            'main_object': 'Error',
+            'description': 'An unexpected error occurred. Please try again.',
+            'search_keywords': [],
+            'suggested_queries': []
+          };
+          lastDetectionTime = DateTime.now();
+          isImageSearchRunning = false;
+        });
+        await flutterTts
+            .speak('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      _subscription?.resume();
+    }
   }
 
   void _toggleTextRecognition() async {
@@ -642,14 +667,15 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       final XFile imageFile = await _cameraController!.takePicture();
       await File(imageFile.path).copy(imagePath);
 
-      final description = await apiService.describeImage(File(imagePath));
+      final description =
+          await imageAnalysisService.describeImage(File(imagePath));
 
       if (!mounted) return;
 
       setState(() {
         sceneDescriptionOutput = description;
         lastDetectionTime = DateTime.now();
-        isImageDescriptionRunning = false; // Clear loading state
+        isImageDescriptionRunning = false;
       });
 
       await flutterTts.speak(description);
@@ -666,19 +692,40 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       });
 
       _panelController.open();
-    } catch (e) {
+    } on ImageAnalysisException catch (e) {
       print('Error describing the image: $e');
       if (mounted) {
         setState(() {
-          sceneDescriptionOutput = 'Error describing the image';
+          sceneDescriptionOutput = e.userFriendlyMessage;
           lastDetectionTime = DateTime.now();
-          isImageDescriptionRunning = false; // Clear loading state
+          isImageDescriptionRunning = false;
         });
-        await flutterTts.speak('Error describing the image');
-      }
-    }
+        await flutterTts.speak(e.userFriendlyMessage);
 
-    _subscription?.resume();
+        // If it's a server error, show a snackbar
+        if (e.isServerError) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.userFriendlyMessage),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ));
+        }
+      }
+    } catch (e) {
+      print('Unexpected error: $e');
+      if (mounted) {
+        setState(() {
+          sceneDescriptionOutput =
+              'An unexpected error occurred. Please try again.';
+          lastDetectionTime = DateTime.now();
+          isImageDescriptionRunning = false;
+        });
+        await flutterTts
+            .speak('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      _subscription?.resume();
+    }
   }
 
   Future<void> _pauseImageSearch() async {

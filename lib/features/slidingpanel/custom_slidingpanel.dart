@@ -3,7 +3,6 @@ import 'package:perceptexx/features/slidingpanel/widgets/feature_config.dart';
 import 'package:perceptexx/features/slidingpanel/widgets/panel_content.dart';
 import 'package:perceptexx/utils/feature_type.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class CustomSlidingPanel extends StatefulWidget {
   final PanelController panelController;

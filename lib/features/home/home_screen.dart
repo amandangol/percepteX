@@ -7,6 +7,7 @@ import 'package:perceptexx/features/home/widgets/home_screen_background.dart';
 import 'package:perceptexx/features/home/widgets/perceptex_appBar.dart';
 import 'package:perceptexx/features/settings/settings_screen.dart';
 import 'package:perceptexx/features/tutorial/tutorial_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../utils/feature_type.dart';
 
@@ -17,13 +18,24 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late FlutterTts flutterTts;
+  bool isFirstLaunch = false;
 
   @override
   void initState() {
     super.initState();
-    initializeTts();
+    WidgetsBinding.instance.addObserver(this);
+    checkFirstLaunch();
+  }
+
+  void checkFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    isFirstLaunch = !(prefs.getBool('has_launched') ?? false);
+    if (isFirstLaunch) {
+      await prefs.setBool('has_launched', true);
+      initializeTts();
+    }
   }
 
   void initializeTts() async {
@@ -32,27 +44,27 @@ class _HomeScreenState extends State<HomeScreen> {
     await flutterTts.setPitch(1.0);
     await flutterTts.setSpeechRate(0.5);
 
-    // Generate personalized greeting based on time of day
-    final hour = DateTime.now().hour;
-    String timeOfDayGreeting = hour < 12
-        ? 'Good Morning'
-        : hour < 18
-            ? 'Good Afternoon'
-            : 'Good Evening';
+    if (isFirstLaunch) {
+      final hour = DateTime.now().hour;
+      String timeOfDayGreeting = hour < 12
+          ? 'Good Morning'
+          : hour < 18
+              ? 'Good Afternoon'
+              : 'Good Evening';
 
-    // Voice greeting
-    String greeting =
-        '$timeOfDayGreeting! I am PercepteX, your AI vision companion. '
-        'I can help you detect objects, recognize text, describe scenes, and search for items. '
-        'Let\'s explore what you can do today!';
+      String greeting =
+          '$timeOfDayGreeting! I am PercepteX, your AI vision companion. '
+          'I can help you detect objects, recognize text, describe scenes, and search for items. '
+          'Let\'s explore what you can do today!';
 
-    // Speak the greeting
-    await flutterTts.speak(greeting);
+      await flutterTts.speak(greeting);
+    }
   }
 
   @override
   void dispose() {
     flutterTts.stop();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -162,7 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToFeature(BuildContext context, FeatureType feature) {
+  void _navigateToFeature(BuildContext context, FeatureType feature) async {
+    await flutterTts.stop();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -174,7 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToTutorial(BuildContext context) {
+  void _navigateToTutorial(BuildContext context) async {
+    await flutterTts.stop();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -185,7 +199,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToSettings(BuildContext context) {
+  void _navigateToSettings(BuildContext context) async {
+    await flutterTts.stop();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SettingsScreen()),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class GreetingSection extends StatefulWidget {
   const GreetingSection({Key? key}) : super(key: key);
@@ -10,24 +9,31 @@ class GreetingSection extends StatefulWidget {
 }
 
 class _GreetingSectionState extends State<GreetingSection>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  // Changed to TickerProviderStateMixin
   late FlutterTts flutterTts;
   bool _isPlaying = false;
-  bool _isMuted = false;
-  bool _hasPlayedInitialGreeting = false;
   late AnimationController _animationController;
   late Animation<double> _animation;
-  late SharedPreferences _prefs;
+  late AnimationController _iconController;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _initializePreferences();
+    WidgetsBinding.instance.addObserver(this);
+    _initializeAnimations();
     initializeTts();
-    checkInitialGreeting();
+  }
 
+  void _initializeAnimations() {
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _iconController = AnimationController(
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
@@ -41,72 +47,45 @@ class _GreetingSectionState extends State<GreetingSection>
     _animationController.forward();
   }
 
-  Future<void> _initializePreferences() async {
-    _prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isMuted = _prefs.getBool('greeting_muted') ?? false;
-    });
-  }
-
   void initializeTts() async {
     flutterTts = FlutterTts();
     await flutterTts.setLanguage('en-US');
     await flutterTts.setPitch(1.0);
     await flutterTts.setSpeechRate(0.5);
 
+    // Handle speech completion
     flutterTts.setCompletionHandler(() {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
-  }
-
-  void checkInitialGreeting() async {
-    final currentDate = DateTime.now().toIso8601String().split('T')[0];
-    final lastLaunchDate = _prefs.getString('last_launch_date');
-
-    if (lastLaunchDate == null || lastLaunchDate != currentDate) {
-      await _prefs.setString('last_launch_date', currentDate);
-      if (!_isMuted) {
-        _playInitialGreeting();
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+        });
+        _iconController.reverse();
       }
-    }
-  }
+    });
 
-  void _toggleGreetingAction() async {
-    if (_isMuted) {
-      // If muted, unmute
-      setState(() {
-        _isMuted = false;
-      });
-      await _prefs.setBool('greeting_muted', false);
-    } else {
-      // If not muted and not playing, play greeting
-      if (!_isPlaying) {
+    // Handle speech start
+    flutterTts.setStartHandler(() {
+      if (mounted) {
         setState(() {
           _isPlaying = true;
         });
-        await flutterTts.speak(_generateGreeting());
-      } else {
-        // If playing, mute and stop
-        await flutterTts.stop();
+        _iconController.forward();
+      }
+    });
+
+    // Handle speech error
+    flutterTts.setErrorHandler((error) {
+      if (mounted) {
         setState(() {
           _isPlaying = false;
-          _isMuted = true;
         });
-        await _prefs.setBool('greeting_muted', true);
+        _iconController.reverse();
       }
-    }
-  }
+    });
 
-  void _playInitialGreeting() async {
-    if (!_hasPlayedInitialGreeting && !_isMuted) {
-      setState(() {
-        _isPlaying = true;
-        _hasPlayedInitialGreeting = true;
-      });
-      await flutterTts.speak(_generateGreeting());
-    }
+    setState(() {
+      _isInitialized = true;
+    });
   }
 
   String _generateGreeting() {
@@ -120,6 +99,94 @@ class _GreetingSectionState extends State<GreetingSection>
     return '$timeOfDayGreeting! I am PercepteX, your AI vision companion. '
         'I can help you detect objects, recognize text, describe scenes, and search for items. '
         'Let\'s explore what you can do today!';
+  }
+
+  Future<void> _toggleGreeting() async {
+    if (!_isInitialized) return;
+
+    if (_isPlaying) {
+      await flutterTts.stop();
+      setState(() {
+        _isPlaying = false;
+      });
+      _iconController.reverse();
+    } else {
+      setState(() {
+        _isPlaying = true;
+      });
+      _iconController.forward();
+      await flutterTts.speak(_generateGreeting());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      flutterTts.stop();
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+        });
+        _iconController.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    flutterTts.stop();
+    _animationController.dispose();
+    _iconController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Widget _buildPlayStopButton() {
+    return GestureDetector(
+      onTap: _toggleGreeting,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: AnimatedBuilder(
+          animation: _iconController,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Opacity(
+                  opacity: 1 - _iconController.value,
+                  child: const Icon(
+                    Icons.play_arrow,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                Opacity(
+                  opacity: _iconController.value,
+                  child: const Icon(
+                    Icons.stop,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -185,27 +252,7 @@ class _GreetingSectionState extends State<GreetingSection>
                     ],
                   ),
                 ),
-                GestureDetector(
-                  onTap: _toggleGreetingAction,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _isMuted
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      _isMuted
-                          ? Icons.volume_off
-                          : (_isPlaying ? Icons.pause : Icons.play_arrow),
-                      color: _isMuted
-                          ? Colors.white.withOpacity(0.4)
-                          : Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                ),
+                _buildPlayStopButton(),
               ],
             ),
             const SizedBox(height: 16),

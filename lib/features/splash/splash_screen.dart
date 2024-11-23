@@ -89,44 +89,11 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1ABC9C),
-                        Color(0xFF16A085),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        spreadRadius: 5,
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(30),
-                  child: const Icon(
-                    Icons.remove_red_eye_outlined,
-                    size: 100,
-                    color: Colors.white,
-                  ),
+                Image.asset(
+                  "assets/images/logo.png",
+                  height: 200,
                 ),
-                const SizedBox(height: 30),
-                const Text(
-                  'PerceptEX',
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 5),
                 Text(
                   'Perceive. Understand. Interact.',
                   style: TextStyle(

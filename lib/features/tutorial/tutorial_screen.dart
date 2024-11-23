@@ -129,6 +129,19 @@ class TutorialScreen extends StatelessWidget {
             'Capture and understand your surroundings with AI-powered scene description. Perfect for navigation and environmental awareness.',
           ),
         ),
+        const SizedBox(height: 16),
+        _TutorialItem(
+          icon: Icons.camera_alt,
+          title: 'Object Search',
+          description: 'Search objects with Google',
+          color: const Color(0xFF2980B9),
+          onTap: () => _showTutorialDetail(
+            context,
+            'Object Search',
+            'Search and gather comprehensive information about objects you encounter. '
+                'Simply point your camera at any object to search its details and get instant Google search results.',
+          ),
+        ),
       ],
     );
   }

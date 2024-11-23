@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:perceptexx/features/home/home_screen.dart';
-import 'package:perceptexx/features/onboarding/onboarding_screen.dart';
+import 'package:perceptexx/components/error_app.dart';
+import 'package:perceptexx/config/app_config.dart';
 import 'package:perceptexx/features/splash/splash_screen.dart';
 
 void main() async {
   // Ensuring all necessary async operations are completed before running the app.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock screen orientation to portrait only.
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitDown,
-    DeviceOrientation.portraitUp,
-  ]);
+  try {
+    // Initialize AppConfig first to load environment variables
+    await AppConfig.initialize();
 
-  // Run the app once initialization is complete.
-  runApp(const MyApp());
+    // Lock screen orientation to portrait only.
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.portraitUp,
+    ]);
+
+    // Run the app once initialization is complete.
+    runApp(const MyApp());
+  } catch (e) {
+    print('Failed to initialize app: $e');
+    runApp(ErrorApp(error: e.toString()));
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -29,9 +37,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primaryColor: Colors.blue[900],
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        fontFamily: 'Roboto', // Optional: add a global font
+        fontFamily: 'Roboto',
       ),
-      home: const OnboardingScreen(), // Change initial route to SplashScreen
+      home: const SplashScreen(),
     );
   }
 }

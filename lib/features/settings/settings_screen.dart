@@ -528,9 +528,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             const SizedBox(height: 16),
                             _buildApiKeySection(
-                              title: 'Gemini API Key',
+                              title: 'Your Gemini API Key',
                               description:
-                                  'Required for image description and AI capabilities.',
+                                  'Required for scene description, object search and AI capabilities.',
                               url: 'https://aistudio.google.com/app/apikey',
                               controller: _geminiApiKeyController,
                               isObscured: _isGeminiKeyObscured,

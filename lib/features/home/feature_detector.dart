@@ -195,7 +195,6 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         recognizedTextOutput: recognizedTextOutput,
         sceneDescriptionOutput: sceneDescriptionOutput,
         objectSearchResult: objectSearchResult,
-        onCopy: (text) => _copyToClipboard(text),
         onShare: (text) => _shareText(text),
         isAnalyzing: isAnalyzing,
       );
@@ -380,22 +379,6 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
     }
-  }
-
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Row(
-        children: [
-          Icon(Icons.check_circle, color: Colors.white),
-          SizedBox(width: 8),
-          Text('Copied to clipboard'),
-        ],
-      ),
-      backgroundColor: const Color(0xFF16A085),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
   }
 
   void onLatestImageAvailable(CameraImage cameraImage) {
@@ -657,7 +640,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       lastDetectionTime = DateTime.now();
     });
 
-    await flutterTts.speak('Image description starting');
+    await flutterTts.speak('Scene description starting');
     _subscription?.pause();
 
     try {
@@ -769,7 +752,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   }
 
   Future<void> _pauseImageDescription() async {
-    print('Pausing image description');
+    print('Pausing scene description');
     await flutterTts.stop();
     setState(() {
       isImageDescriptionRunning = false;

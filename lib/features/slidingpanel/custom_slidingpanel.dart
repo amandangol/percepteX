@@ -12,7 +12,7 @@ class CustomSlidingPanel extends StatefulWidget {
   final String? recognizedTextOutput;
   final String? sceneDescriptionOutput;
   final Map<String, dynamic>? objectSearchResult;
-  final Function(String) onCopy;
+  final Function(String)? onCopy;
   final Function(String) onShare;
   final bool isAnalyzing;
 
@@ -25,7 +25,7 @@ class CustomSlidingPanel extends StatefulWidget {
     this.recognizedTextOutput,
     this.sceneDescriptionOutput,
     this.objectSearchResult,
-    required this.onCopy,
+    this.onCopy,
     required this.onShare,
     this.isAnalyzing = false,
   }) : super(key: key);

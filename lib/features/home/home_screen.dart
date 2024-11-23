@@ -8,7 +8,6 @@ import 'package:perceptexx/features/home/widgets/perceptex_appBar.dart';
 import 'package:perceptexx/features/settings/settings_screen.dart';
 import 'package:perceptexx/features/tutorial/tutorial_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../utils/feature_type.dart';
 
 class HomeScreen extends StatefulWidget {

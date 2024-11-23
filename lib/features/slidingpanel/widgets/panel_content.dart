@@ -104,7 +104,7 @@ class _PanelContentState extends State<PanelContent> {
   }
 
   void _shareContent(String text) {
-    Share.share(text);
+    Share.share(text, subject: 'Perceptex Detection Result');
   }
 
   Future<void> _launchSearch(String query, {bool isImageSearch = false}) async {

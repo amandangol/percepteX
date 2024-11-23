@@ -14,12 +14,31 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _geminiApiKeyController = TextEditingController();
 
+  // Default values
+  static const double DEFAULT_SPEECH_RATE = 0.5;
+  static const double DEFAULT_PITCH = 1.0;
+  static const double DEFAULT_VOLUME = 1.0;
+  static const String DEFAULT_LANGUAGE = 'en-US';
+
   // TTS-related variables
   FlutterTts? _flutterTts;
-  double _speechRate = 0.5;
-  double _pitch = 1.0;
-  double _volume = 1.0;
-  String _selectedLanguage = 'en-US';
+  double _speechRate = DEFAULT_SPEECH_RATE;
+  double _pitch = DEFAULT_PITCH;
+  double _volume = DEFAULT_VOLUME;
+  String _selectedLanguage = DEFAULT_LANGUAGE;
+
+  // Language map for readable names
+  final Map<String, String> _languageNames = {
+    'en-US': 'English (US)',
+    'es-ES': 'Spanish (Spain)',
+    'fr-FR': 'French (France)',
+    'de-DE': 'German (Germany)',
+    'zh-CN': 'Chinese (Simplified)',
+    'ja-JP': 'Japanese',
+    'ko-KR': 'Korean',
+    'ar-SA': 'Arabic (Saudi Arabia)',
+    'hi-IN': 'Hindi (India)'
+  };
 
   bool _isGeminiKeyObscured = true;
   bool _isLoading = false;
@@ -29,6 +48,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _initializeAll();
+  }
+
+  Future<void> _resetToDefaults() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Row(
+          children: [
+            Icon(Icons.restore, color: Color(0xFF2980B9)),
+            SizedBox(width: 8),
+            Text('Reset Settings', style: TextStyle(color: Colors.black87)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to reset all settings to default values?',
+          style: TextStyle(color: Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performReset();
+            },
+            child:
+                const Text('Reset', style: TextStyle(color: Color(0xFF2980B9))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performReset() async {
+    setState(() => _isLoading = true);
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      // Reset TTS settings to defaults
+      setState(() {
+        _speechRate = DEFAULT_SPEECH_RATE;
+        _pitch = DEFAULT_PITCH;
+        _volume = DEFAULT_VOLUME;
+        _selectedLanguage = DEFAULT_LANGUAGE;
+        _geminiApiKeyController.text = '';
+      });
+
+      // Clear stored settings
+      await prefs.remove('gemini_api_key');
+      await prefs.remove('tts_speech_rate');
+      await prefs.remove('tts_pitch');
+      await prefs.remove('tts_volume');
+      await prefs.remove('tts_language');
+
+      // Apply default TTS settings
+      if (_isTTSInitialized) {
+        await _configureTTS();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.restore, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Settings reset to defaults'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF16A085),
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      _showErrorDialog('Failed to reset settings: $e');
+    }
+    setState(() => _isLoading = false);
   }
 
   Future<void> _initializeAll() async {
@@ -325,20 +427,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _selectedLanguage,
             isExpanded: true,
             underline: const SizedBox(),
-            items: [
-              'en-US',
-              'es-ES',
-              'fr-FR',
-              'de-DE',
-              'zh-CN',
-              'ja-JP',
-              'ko-KR',
-              'ar-SA',
-              'hi-IN'
-            ].map((String language) {
+            items: _languageNames.entries.map((entry) {
               return DropdownMenuItem(
-                value: language,
-                child: Text(language),
+                value: entry.key,
+                child: Text(entry.value),
               );
             }).toList(),
             onChanged: (String? newLanguage) {
@@ -477,7 +569,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -538,38 +630,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   _isGeminiKeyObscured = !_isGeminiKeyObscured),
                             ),
                             const SizedBox(height: 16),
-                            // New TTS Settings Section
                             _buildTTSSettingsSection(),
                             const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _saveSettings,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE74C3C),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed:
+                                        _isLoading ? null : _saveSettings,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE74C3C),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white),
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Save Changes',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.white),
+                                          ),
                                   ),
                                 ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  Colors.white),
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Save Changes',
+                                const SizedBox(width: 12),
+                                ElevatedButton(
+                                  onPressed:
+                                      _isLoading ? null : _resetToDefaults,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[700],
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16, horizontal: 24),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.restore,
+                                          color: Colors.white, size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Reset',
                                         style: TextStyle(
                                             fontSize: 16, color: Colors.white),
                                       ),
-                              ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -584,57 +705,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildCustomAppBar(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
-        left: 24,
-        right: 24,
-        bottom: 16,
+Widget _buildCustomAppBar(BuildContext context) {
+  return Container(
+    padding: EdgeInsets.only(
+      top: MediaQuery.of(context).padding.top + 16,
+      left: 24,
+      right: 24,
+      bottom: 16,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.black.withOpacity(0.2),
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(30),
+        bottomRight: Radius.circular(30),
       ),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.2),
+              ),
+              child: const Icon(
+                Icons.settings,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'SETTINGS',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                ),
-                child: const Icon(
-                  Icons.settings,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'SETTINGS',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close, color: Colors.white),
+        ),
+      ],
+    ),
+  );
 }

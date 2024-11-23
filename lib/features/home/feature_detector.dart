@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:perceptexx/components/bounding_boxes.dart';
@@ -68,6 +67,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   bool isVoicePlaying = false;
   bool isImageSearchRunning = false;
   Map<String, dynamic>? objectSearchResult;
+  Map<String, dynamic>? _preservedSearchResult;
 
   DateTime? lastDetectionTime;
   final double _fixedExposureOffset = 1.0;
@@ -195,7 +195,7 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         recognizedTextOutput: recognizedTextOutput,
         sceneDescriptionOutput: sceneDescriptionOutput,
         objectSearchResult: objectSearchResult,
-        onShare: (text) => _shareText(text),
+        // onShare: (text) => _shareText(text),
         isAnalyzing: isAnalyzing,
       );
     }
@@ -292,13 +292,6 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     });
   }
 
-  void _stopVoicePlayback() async {
-    await flutterTts.stop();
-    setState(() {
-      isVoicePlaying = false;
-    });
-  }
-
   String _getFeatureTitle() {
     switch (widget.feature) {
       case FeatureType.objectDetection:
@@ -362,25 +355,6 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
     }
   }
 
-  void _shareText(String text) {
-    try {
-      Share.share(text, subject: 'Perceptex Detection Result');
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.error, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Unable to share text'),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
-    }
-  }
-
   void onLatestImageAvailable(CameraImage cameraImage) {
     if (widget.feature == FeatureType.objectDetection) {
       _detector?.processFrame(cameraImage);
@@ -433,13 +407,28 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
           if (mounted) {
             setState(() {
               isImageSearchRunning = false;
-              objectSearchResult = null;
+              // objectSearchResult = null;
             });
           }
           break;
       }
     } catch (e) {
       print('Error stopping current feature: $e');
+    }
+  }
+
+  void _handlePanelAction(Function action) async {
+    // Store current result before action
+    final currentResult = objectSearchResult;
+
+    // Perform the action
+    await action();
+
+    // Restore the result if it was cleared
+    if (mounted && currentResult != null) {
+      setState(() {
+        objectSearchResult = currentResult;
+      });
     }
   }
 
@@ -508,8 +497,10 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
 
       if (!mounted) return;
 
+      // Store the result in both state variables
       setState(() {
         objectSearchResult = analysisResult;
+        _preservedSearchResult = analysisResult; // Preserve the result
         lastDetectionTime = DateTime.now();
         isImageSearchRunning = false;
       });
@@ -531,45 +522,24 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
       });
 
       _panelController.open();
-    } on ImageAnalysisException catch (e) {
-      print('Error analyzing object: $e');
-      if (mounted) {
-        setState(() {
-          objectSearchResult = {
-            'main_object': 'Error',
-            'description': e.userFriendlyMessage,
-            'search_keywords': [],
-            'suggested_queries': []
-          };
-          lastDetectionTime = DateTime.now();
-          isImageSearchRunning = false;
-        });
-        await flutterTts.speak(e.userFriendlyMessage);
-
-        // If it's a server error, show a snackbar
-        if (e.isServerError) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.userFriendlyMessage),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-          ));
-        }
-      }
     } catch (e) {
-      print('Unexpected error: $e');
+      // Handle errors...
+      print('Error in object search: $e');
+      // Update error states similarly
+      final errorResult = {
+        'main_object': 'Error',
+        'description': 'An unexpected error occurred. Please try again.',
+        'search_keywords': [],
+        'suggested_queries': []
+      };
+
       if (mounted) {
         setState(() {
-          objectSearchResult = {
-            'main_object': 'Error',
-            'description': 'An unexpected error occurred. Please try again.',
-            'search_keywords': [],
-            'suggested_queries': []
-          };
+          objectSearchResult = errorResult;
+          _preservedSearchResult = errorResult;
           lastDetectionTime = DateTime.now();
           isImageSearchRunning = false;
         });
-        await flutterTts
-            .speak('An unexpected error occurred. Please try again.');
       }
     } finally {
       _subscription?.resume();
@@ -770,6 +740,12 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
         break;
       case AppLifecycleState.resumed:
         _initStateAsync();
+        // Restore the object search result if it exists
+        if (_preservedSearchResult != null) {
+          setState(() {
+            objectSearchResult = _preservedSearchResult;
+          });
+        }
         break;
       default:
     }
@@ -778,20 +754,13 @@ class _FeatureDetectorWidgetState extends State<FeatureDetector>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-
-    // Safely stop current feature
     _stopCurrentFeature();
-
-    // Null-safe disposal of resources
     _cameraController?.dispose();
     _detector?.stop();
     _subscription?.cancel();
     textRecognitionTTS.dispose();
-
-    // Safely close panel
     _panelController.close();
     flutterTts.stop();
-
     super.dispose();
   }
 }

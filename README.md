@@ -1,9 +1,8 @@
 # Perceptexx: Multimodal Accessibility Assistant
 
 [![Flutter Version](https://img.shields.io/badge/Flutter-%3E%3D2.5.0-blue.svg)](https://flutter.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Perceptexx is a Flutter-based mobile application that combines computer vision, text recognition, and generative AI to create an accessible experience for visually impaired users. The app provides real-time object detection, text recognition, scene description, and object search capabilities through an intuitive, voice-guided interface.
+Perceptexx is a Flutter-based mobile application that combines computer vision, text recognition, and generative AI to create an accessible experience. The app provides real-time object detection, text recognition, scene description, and object search capabilities through an intuitive...
 
 ## Features
 

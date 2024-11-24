@@ -3,7 +3,9 @@
 PercepteX is a Flutter-based mobile application that combines computer vision, text recognition, and generative AI to create an accessible experience. The app provides real-time object detection, text recognition, scene description, and object search capabilities through an intuitive...
 
 <img src="https://github.com/user-attachments/assets/6fc425ef-456a-45bd-bd01-e1460e98b65e" alt="homepage" height="500"> <img src="https://github.com/user-attachments/assets/1222b067-cb7b-47ca-b0f9-461022586903" alt="settings" height="500"> <img src="https://github.com/user-attachments/assets/33508b65-5967-4827-9016-f7d7d5829a1c" alt="tutorial" height="500"> 
-<img src="https://github.com/user-attachments/assets/a49aa7ef-96cb-49b1-9a4d-4906699ac42b" alt="object_search" height="500"> <img src="(https://github.com/user-attachments/assets/4bd79b1b-238a-4014-ad6a-09d3a8166713" alt="scene_description" height="500"> <img src="https://github.com/user-attachments/assets/94612826-91e6-48f3-acbe-2d8ccc9dd6ff" alt="text_recognition" height="500">
+<img src="https://github.com/user-attachments/assets/a49aa7ef-96cb-49b1-9a4d-4906699ac42b" alt="object_search" height="500"> <img src="https://github.com/user-attachments/assets/4bd79b1b-238a-4014-ad6a-09d3a8166713" alt="scene_description" height="500"> <img src="https://github.com/user-attachments/assets/94612826-91e6-48f3-acbe-2d8ccc9dd6ff" alt="text_recognition" height="500">
+
+https://github.com/user-attachments/assets/ec00bed7-2dc8-47c9-ae49-2e58d425e042
 
 ## Features
 
@@ -16,6 +18,8 @@ PercepteX is a Flutter-based mobile application that combines computer vision, t
   - Model inference time: ~50ms per frame
   - Confidence threshold: 0.5
   - Configurable maximum object detection limit
+    
+https://github.com/user-attachments/assets/98c0a9ae-402d-45d1-906b-92f249e9c3b1
 
 ### 2. Text Recognition with TTS
 
@@ -27,6 +31,8 @@ PercepteX is a Flutter-based mobile application that combines computer vision, t
   - Word Error Rate (WER): 2.5%
   - Accuracy: 95%+ for clear printed text
   - Language support based on ML Kit capabilities
+    
+https://github.com/user-attachments/assets/d073dd3b-00ad-4ac0-936e-b43da755c247
 
 ### 3. Scene Description
 
@@ -37,6 +43,9 @@ PercepteX is a Flutter-based mobile application that combines computer vision, t
   - Supported formats: JPEG, PNG, GIF, WebP
 - Audio narration of scene descriptions
 - Complex scene handling with multiple objects and activities
+  
+https://github.com/user-attachments/assets/160f6fdf-9768-425f-ad60-5fdfdb9dea16
+
 
 ### 4. Object Search
 
@@ -44,6 +53,9 @@ PercepteX is a Flutter-based mobile application that combines computer vision, t
 - Search keyword generation and suggested queries
 - Comprehensive object descriptions
 - Educational exploration features for identified objects
+  
+https://github.com/user-attachments/assets/4282988b-d2fa-42b7-8bc4-454726af91bc
+
 
 ### 5. Settings and Configuration
 
@@ -67,6 +79,8 @@ PercepteX is a Flutter-based mobile application that combines computer vision, t
     - Korean
     - Arabic (Saudi Arabia)
     - Hindi (India)
+  
+https://github.com/user-attachments/assets/e4a02c5b-06fd-474d-b5d5-3f6a6d045d48
 
 - **Settings Persistence**:
   - Automatic settings saving

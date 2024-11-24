@@ -1,6 +1,6 @@
 # PercepteX: Multimodal Accessibility Assistant
 
-PercepteX is a Flutter-based mobile application that combines computer vision, text recognition, and generative AI to create an accessible experience. The app provides real-time object detection, text recognition, scene description, and object search capabilities through an intuitive...
+PercepteX is a Flutter-based mobile application that combines computer vision, text recognition, and generative AI to create an accessible experience. The app provides real-time object detection, text recognition, scene description, and object search capabilities through an intuitive platform.
 
 <img src="https://github.com/user-attachments/assets/6fc425ef-456a-45bd-bd01-e1460e98b65e" alt="homepage" height="500"> <img src="https://github.com/user-attachments/assets/1222b067-cb7b-47ca-b0f9-461022586903" alt="settings" height="500"> <img src="https://github.com/user-attachments/assets/33508b65-5967-4827-9016-f7d7d5829a1c" alt="tutorial" height="500"> 
 <img src="https://github.com/user-attachments/assets/a49aa7ef-96cb-49b1-9a4d-4906699ac42b" alt="object_search" height="500"> <img src="https://github.com/user-attachments/assets/4bd79b1b-238a-4014-ad6a-09d3a8166713" alt="scene_description" height="500"> <img src="https://github.com/user-attachments/assets/94612826-91e6-48f3-acbe-2d8ccc9dd6ff" alt="text_recognition" height="500">

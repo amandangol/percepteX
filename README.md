@@ -203,14 +203,13 @@ assets/
 
 ## Installation
 
-## Installation
-
 ### Prerequisites
 
 - Flutter SDK (>=2.5.0)
 - Dart SDK (>=2.14.0)
 - Android Studio / Xcode
 - Google Cloud Platform account
+- Gemini API Key
 - Camera-enabled device/emulator
 
 ### Setup Steps
@@ -218,7 +217,7 @@ assets/
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/perceptexx.git
+   git clone https://github.com/amandangol/percepteX.git
    cd perceptexx
    ```
 

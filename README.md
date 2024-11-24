@@ -173,11 +173,88 @@ lib/
 └── utils/           # Utility functions
 ```
 
-[Rest of the README remains the same...]
+## Installation
 
 ## Installation
 
-[Previous installation instructions remain the same...]
+### Prerequisites
+
+- Flutter SDK (>=2.5.0)
+- Dart SDK (>=2.14.0)
+- Android Studio / Xcode
+- Google Cloud Platform account
+- Camera-enabled device/emulator
+
+### Setup Steps
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/yourusername/perceptexx.git
+   cd perceptexx
+   ```
+
+2. **Install Dependencies**
+
+   ```bash
+   flutter pub get
+   ```
+
+3. **Configure API Keys**
+   Create `.env file`:
+
+   ```dart
+   GEMINI_API_KEY="YOUR_GEMINI_API_KEY
+   ```
+
+4. **Add Required Dependencies**
+   Add to `pubspec.yaml`:
+
+   ```yaml
+   dependencies:
+     cupertino_icons: ^1.0.6
+     tflite_flutter: ^0.11.0
+     camera: ^0.10.5+2
+     image: ^4.0.17
+     path_provider: ^2.0.15
+     image_picker: ^1.0.0
+     flutter_tts: ^3.1.0
+     google_mlkit_text_recognition: ^0.4.0
+     permission_handler: ^10.2.0
+     flutter_gemini: ^2.0.3
+     speech_to_text: ^7.0.0
+     google_generative_ai: ^0.4.4
+     shared_preferences: ^2.3.3
+     flutter_animate: ^4.5.0
+     sliding_up_panel: ^2.0.0+1
+     url_launcher: ^6.3.1
+     translator: ^1.0.3+1
+     webview_flutter: ^4.8.0
+     cached_network_image: ^3.4.1
+     flutter_launcher_icons: ^0.14.1
+     flutter_dotenv: ^5.2.1
+   ```
+
+5. **Platform Configuration**
+
+   **Android** (`android/app/src/main/AndroidManifest.xml`):
+
+   ```xml
+   <uses-permission android:name="android.permission.CAMERA" />
+   <uses-permission android:name="android.permission.INTERNET" />
+   ```
+
+   **iOS** (`ios/Runner/Info.plist`):
+
+   ```xml
+   <key>NSCameraUsageDescription</key>
+   <string>Camera access is required for object detection and analysis</string>
+   ```
+
+6. **Build and Run**
+   ```bash
+   flutter run
+   ```
 
 ## Usage Guide
 
@@ -257,4 +334,4 @@ try {
 
 ---
 
-Built with ❤️ for accessibility
+Built with ❤️ by _amandangol_ for accessibility

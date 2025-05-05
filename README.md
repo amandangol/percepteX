@@ -1,4 +1,7 @@
 # PercepteX: Multimodal Accessibility Assistant
+
+<img src="assets/icon/icon.png" alt="PercepteX Logo" width="200" height="200">
+
 **Winning App of the November Hackathon Challenge**
 
 PercepteX is a Flutter-based mobile application that combines computer vision, text recognition, and generative AI to create an accessible experience. The app provides real-time object detection, text recognition, scene description, and object search capabilities through an intuitive platform.
